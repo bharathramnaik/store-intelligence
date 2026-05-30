@@ -1,0 +1,34 @@
+{
+  "STORE_BLR_002": {
+    "name": "Apex Retail Bangalore Koramangala",
+    "open_hours": "10:00-22:00",
+    "timezone": "Asia/Kolkata",
+    "zones": [
+      {
+        "name": "ENTRY",
+        "polygon": [[0, 0], [1920, 0], [1920, 200], [0, 200]],
+        "cameras": ["CAM_ENTRY_01"]
+      },
+      {
+        "name": "SKINCARE",
+        "polygon": [[0, 200], [960, 200], [960, 1080], [0, 1080]],
+        "cameras": ["CAM_FLOOR_01"]
+      },
+      {
+        "name": "MOISTURISER",
+        "polygon": [[960, 200], [1920, 200], [1920, 1080], [960, 1080]],
+        "cameras": ["CAM_FLOOR_01"]
+      },
+      {
+        "name": "BILLING",
+        "polygon": [[400, 400], [1520, 400], [1520, 800], [400, 800]],
+        "cameras": ["CAM_BILLING_01"]
+      }
+    ],
+    "cameras": [
+      {"id": "CAM_ENTRY_01", "type": "entry", "resolution": [1920, 1080]},
+      {"id": "CAM_FLOOR_01", "type": "floor", "resolution": [1920, 1080]},
+      {"id": "CAM_BILLING_01", "type": "billing", "resolution": [1920, 1080]}
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "STORE_BLR_002": {
+    "name": "Purplle Bengaluru Challenge Store",
+    "open_hours": "10:00-22:00",
+    "timezone": "Asia/Kolkata",
+    "clip_map": {
+      "CAM 1.mp4": "CAM_FLOOR_01",
+      "CAM 2.mp4": "CAM_FLOOR_02",
+      "CAM 3.mp4": "CAM_ENTRY_01",
+      "CAM 4.mp4": "CAM_STAFF_01",
+      "CAM 5.mp4": "CAM_STAFF_02"
+    },
+    "zones": [
+      {
+        "name": "ENTRY",
+        "polygon": [[420, 120], [1560, 120], [1560, 920], [420, 920]],
+        "cameras": ["CAM_ENTRY_01"]
+      },
+      {
+        "name": "SKINCARE",
+        "polygon": [[0, 0], [1920, 0], [1920, 1080], [0, 1080]],
+        "cameras": ["CAM_FLOOR_01"]
+      },
+      {
+        "name": "MAKEUP",
+        "polygon": [[0, 0], [1920, 0], [1920, 1080], [0, 1080]],
+        "cameras": ["CAM_FLOOR_02"]
+      },
+      {
+        "name": "STAFF_ONLY",
+        "polygon": [[0, 0], [1920, 0], [1920, 1080], [0, 1080]],
+        "cameras": ["CAM_STAFF_01", "CAM_STAFF_02"]
+      }
+    ],
+    "cameras": [
+      {
+        "id": "CAM_FLOOR_01",
+        "type": "floor",
+        "resolution": [1920, 1080],
+        "source_files": ["CAM 1.mp4"]
+      },
+      {
+        "id": "CAM_FLOOR_02",
+        "type": "floor",
+        "resolution": [1920, 1080],
+        "source_files": ["CAM 2.mp4"]
+      },
+      {
+        "id": "CAM_ENTRY_01",
+        "type": "entry",
+        "resolution": [1920, 1080],
+        "source_files": ["CAM 3.mp4"]
+      },
+      {
+        "id": "CAM_STAFF_01",
+        "type": "staff",
+        "resolution": [1920, 1080],
+        "source_files": ["CAM 4.mp4"]
+      },
+      {
+        "id": "CAM_STAFF_02",
+        "type": "staff",
+        "resolution": [1920, 1080],
+        "source_files": ["CAM 5.mp4"]
+      }
+    ]
+  }
+}
