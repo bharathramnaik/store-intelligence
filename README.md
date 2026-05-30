@@ -59,7 +59,7 @@ Events are written to `/data/events/*.jsonl`.
 ### Step 2: Ingest events into the API
 
 ```bash
-python scripts/ingest_events.py --events-dir data/events
+docker compose exec api python -m scripts.ingest_events --events-dir /data/events
 ```
 
 ### Step 3: Ingest POS transactions & correlate
