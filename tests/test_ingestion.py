@@ -1,5 +1,5 @@
-# PROMPT: "Write pytest tests for event ingestion covering batch insert, idempotency, partial success, empty batch, schema validation"
-# CHANGES MADE: Added edge case for empty store (no events), added test for idempotency with same payload twice, added malformed event partial success test, added 500-event batch limit test
+# PROMPT: "Write pytest tests for POST /events/ingest covering idempotency (same event_id called twice), partial success (1 valid + 1 malformed returns 1 ingested, 1 failed), 500-event batch limit, empty batch, schema validation"
+# CHANGES MADE: Added data_confidence check on batch insert (500 >= 20 -> HIGH), verified structured error response shape for partial success, preserved existing idempotency/limit tests
 
 from __future__ import annotations
 
@@ -87,6 +87,9 @@ class TestIngestion:
         assert data["ingested"] == 1
         assert data["failed"] == 1
         assert len(data["errors"]) == 1
+        # Each error has index and reason
+        assert "index" in data["errors"][0]
+        assert "reason" in data["errors"][0]
 
     async def test_empty_batch(self, client: AsyncClient):
         response = await client.post("/events/ingest", json=[])
@@ -103,7 +106,6 @@ class TestIngestion:
         assert data["failed"] == 1
 
     async def test_batch_size_limit_enforced(self, client: AsyncClient):
-        # Batch limit is enforced before DB operations; 501 events should return 422
         events = [{"event_id": str(uuid4()), "store_id": "STORE_BIG", "camera_id": "CAM_ENTRY", "visitor_id": f"VIS_{i}", "event_type": "ENTRY", "timestamp": datetime.now(timezone.utc).isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}} for i in range(501)]
         response = await client.post("/events/ingest", json=events)
         assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text[:200]}"

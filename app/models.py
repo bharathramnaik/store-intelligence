@@ -45,6 +45,7 @@ class MetricOut(BaseModel):
     avg_dwell_per_zone: dict[str, float]
     queue_depth: int
     abandonment_rate: float
+    data_confidence: Literal["LOW", "HIGH"]
     computed_at: datetime
 
 
@@ -58,6 +59,7 @@ class FunnelOut(BaseModel):
     store_id: str
     stages: list[FunnelStage]
     total_sessions: int
+    data_confidence: Literal["LOW", "HIGH"]
 
 
 class HeatmapZone(BaseModel):

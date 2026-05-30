@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func, and_
@@ -91,6 +91,9 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
     queue_depth = latest_meta.get("queue_depth") if latest_meta else 0
     queue_depth = queue_depth or 0
 
+    # Data confidence
+    data_confidence: Literal["LOW", "HIGH"] = "HIGH" if unique_visitors >= 20 else "LOW"
+
     # Abandonment rate (non-staff, today)
     ab_join = select(func.count()).where(
         and_(
@@ -121,5 +124,6 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
         avg_dwell_per_zone=avg_dwell_per_zone,
         queue_depth=queue_depth,
         abandonment_rate=abandonment_rate,
+        data_confidence=data_confidence,
         computed_at=datetime.now(timezone.utc),
     )

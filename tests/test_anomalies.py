@@ -1,5 +1,5 @@
-# PROMPT: "Write pytest tests for anomaly detection covering dead zone, stale feed, queue spike, conversion drop, severity + suggested_action validation, anomaly persistence"
-# CHANGES MADE: Added dead zone test with 35 min gap, added stale feed test with mocked old timestamp, added queue spike with historical data (varying depths) so stddev>0, added conversion drop with varying 7-day rates so stddev>0, added anomaly persistence DB check, added severity and suggested_action field validation
+# PROMPT: "Write pytest tests for GET /stores/{id}/anomalies covering QUEUE_SPIKE (with varying historical depths so stddev>0), CONVERSION_DROP (with varying 7-day rates so stddev>0), DEAD_ZONE (no visits in 30+ min), verifying severity and suggested_action fields exist in response"
+# CHANGES MADE: Added dead zone test with 35 min gap, added stale feed test with mocked old timestamp, added queue spike with historical data (varying depths) so stddev>0, added conversion drop with varying 7-day rates so stddev>0, added anomaly persistence DB check, added severity and suggested_action field validation, updated prompt block
 
 from __future__ import annotations
 
@@ -49,7 +49,6 @@ class TestAnomalies:
         now = datetime.now(timezone.utc)
         events = []
 
-        # Historical: 7 days of varying queue depths so stddev > 0
         for day in range(7, 0, -1):
             old = now - timedelta(days=day)
             for _ in range(5):
@@ -66,7 +65,6 @@ class TestAnomalies:
                     "metadata": {"queue_depth": day + 1, "sku_zone": "BILLING", "session_seq": 1}
                 })
 
-        # Current: 20 events with deep queue to trigger spike
         for i in range(20):
             events.append({
                 "event_id": str(uuid4()),
@@ -92,7 +90,6 @@ class TestAnomalies:
 
     async def test_conversion_drop(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
-        # Inject 7 days' worth of daily metrics with VARYING rates so stddev > 0
         async with get_db_context() as db:
             from app.db.base import DailyMetricModel
             varying_rates = [0.30, 0.28, 0.32, 0.25, 0.35, 0.29, 0.31]
@@ -110,7 +107,6 @@ class TestAnomalies:
                 ))
             await db.commit()
 
-        # Inject today's events: 100 visitors, 0 conversions -> conversion_rate = 0.0
         for i in range(100):
             events = [{
                 "event_id": str(uuid4()),

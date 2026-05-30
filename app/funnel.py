@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,4 +103,5 @@ async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> Funne
         ),
     ]
 
-    return FunnelOut(store_id=store_id, stages=stages, total_sessions=entry_count)
+    data_confidence: Literal["LOW", "HIGH"] = "HIGH" if entry_count >= 20 else "LOW"
+    return FunnelOut(store_id=store_id, stages=stages, total_sessions=entry_count, data_confidence=data_confidence)
