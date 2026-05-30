@@ -101,3 +101,11 @@ class TestIngestion:
         assert response.status_code == 200
         data = response.json()
         assert data["failed"] == 1
+
+    async def test_batch_size_limit_enforced(self, client: AsyncClient):
+        # Batch limit is enforced before DB operations; 501 events should return 422
+        events = [{"event_id": str(uuid4()), "store_id": "STORE_BIG", "camera_id": "CAM_ENTRY", "visitor_id": f"VIS_{i}", "event_type": "ENTRY", "timestamp": datetime.now(timezone.utc).isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}} for i in range(501)]
+        response = await client.post("/events/ingest", json=events)
+        assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text[:200]}"
+        detail = response.json()["detail"]
+        assert "500" in detail

@@ -50,12 +50,15 @@ export function useFunnel(storeId: string, options: UseApiOptions = {}) {
   const { refreshInterval = 15000, enabled = true } = options
   const [data, setData] = useState<FunnelData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetch = useCallback(async () => {
     try {
       const res = await api.get<FunnelData>(`/stores/${storeId}/funnel`)
       setData(res.data)
+      setError(null)
     } catch (err) {
+      setError(axios.isAxiosError(err) ? err.message : 'Unknown error')
       console.error('Funnel fetch error:', err)
     } finally {
       setLoading(false)
@@ -69,7 +72,7 @@ export function useFunnel(storeId: string, options: UseApiOptions = {}) {
     return () => clearInterval(interval)
   }, [fetch, enabled, refreshInterval])
 
-  return { data, loading }
+  return { data, loading, error }
 }
 
 export function useHeatmap(storeId: string, options: UseApiOptions = {}) {

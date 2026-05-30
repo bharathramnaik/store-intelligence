@@ -1,3 +1,6 @@
+# PROMPT: "Write pytest fixtures for async FastAPI app with PostgreSQL, session-level DB setup/teardown, clean_db per client"
+# CHANGES MADE: Added session-scoped engine, clean_db fixture, ASGI transport client, db fixture for direct session access
+
 from __future__ import annotations
 
 import pytest_asyncio

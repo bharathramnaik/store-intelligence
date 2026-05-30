@@ -34,7 +34,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request.state.trace_id = trace_id
         start = time.perf_counter()
 
-        log = logger.bind(trace_id=trace_id, endpoint=str(request.url.path), method=request.method)
+        store_id = request.path_params.get("store_id", "")
+        log = logger.bind(
+            trace_id=trace_id,
+            endpoint=str(request.url.path),
+            method=request.method,
+            store_id=store_id,
+        )
 
         try:
             response = await call_next(request)

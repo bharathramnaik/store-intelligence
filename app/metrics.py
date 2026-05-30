@@ -39,19 +39,30 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
     uv_result = await db.execute(uv_stmt)
     unique_visitors = uv_result.scalar() or 0
 
-    # Conversion rate
+    # Conversion rate (sessions converted today)
     conv_stmt = select(func.count(func.distinct(SessionModel.visitor_id))).where(
         and_(
             SessionModel.store_id == store_id,
             SessionModel.is_staff == False,
             SessionModel.converted == True,
+            SessionModel.start_time >= start,
+            SessionModel.start_time < end,
         )
     )
     conv_result = await db.execute(conv_stmt)
     converters = conv_result.scalar() or 0
     conversion_rate = round(converters / unique_visitors, 4) if unique_visitors > 0 else 0.0
 
-    # Avg dwell per zone
+    # Avg dwell per zone (entering visitors only)
+    entering_ids = select(EventModel.visitor_id).where(
+        and_(
+            EventModel.store_id == store_id,
+            EventModel.is_staff == False,
+            EventModel.event_type.in_(["ENTRY", "REENTRY"]),
+            EventModel.timestamp >= start,
+            EventModel.timestamp < end,
+        )
+    )
     dwell_stmt = select(
         EventModel.zone_id, func.avg(EventModel.dwell_ms)
     ).where(
@@ -62,6 +73,7 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
             EventModel.dwell_ms > 0,
             EventModel.timestamp >= start,
             EventModel.timestamp < end,
+            EventModel.visitor_id.in_(entering_ids),
         )
     ).group_by(EventModel.zone_id)
     dwell_result = await db.execute(dwell_stmt)
@@ -79,12 +91,24 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
     queue_depth = latest_meta.get("queue_depth") if latest_meta else 0
     queue_depth = queue_depth or 0
 
-    # Abandonment rate
+    # Abandonment rate (non-staff, today)
     ab_join = select(func.count()).where(
-        and_(EventModel.store_id == store_id, EventModel.event_type == "BILLING_QUEUE_JOIN")
+        and_(
+            EventModel.store_id == store_id,
+            EventModel.event_type == "BILLING_QUEUE_JOIN",
+            EventModel.is_staff == False,
+            EventModel.timestamp >= start,
+            EventModel.timestamp < end,
+        )
     )
     ab_abandon = select(func.count()).where(
-        and_(EventModel.store_id == store_id, EventModel.event_type == "BILLING_QUEUE_ABANDON")
+        and_(
+            EventModel.store_id == store_id,
+            EventModel.event_type == "BILLING_QUEUE_ABANDON",
+            EventModel.is_staff == False,
+            EventModel.timestamp >= start,
+            EventModel.timestamp < end,
+        )
     )
     j_val = (await db.execute(ab_join)).scalar() or 0
     a_val = (await db.execute(ab_abandon)).scalar() or 0

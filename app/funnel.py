@@ -36,7 +36,16 @@ async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> Funne
     )
     entry_count = (await db.execute(s1)).scalar() or 0
 
-    # Stage 2: Zone Visit (any ZONE_ENTER)
+    # Stage 2: Zone Visit (ZONE_ENTER from entering visitors only)
+    entering_ids = select(EventModel.visitor_id).where(
+        and_(
+            EventModel.store_id == store_id,
+            EventModel.is_staff == False,
+            EventModel.event_type.in_(["ENTRY", "REENTRY"]),
+            EventModel.timestamp >= start,
+            EventModel.timestamp < end,
+        )
+    )
     s2 = select(func.count(func.distinct(EventModel.visitor_id))).where(
         and_(
             EventModel.store_id == store_id,
@@ -44,6 +53,7 @@ async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> Funne
             EventModel.event_type == "ZONE_ENTER",
             EventModel.timestamp >= start,
             EventModel.timestamp < end,
+            EventModel.visitor_id.in_(entering_ids),
         )
     )
     zone_count = (await db.execute(s2)).scalar() or 0
@@ -60,12 +70,14 @@ async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> Funne
     )
     queue_count = (await db.execute(s3)).scalar() or 0
 
-    # Stage 4: Purchase (converted sessions)
+    # Stage 4: Purchase (converted sessions today)
     s4 = select(func.count(func.distinct(SessionModel.visitor_id))).where(
         and_(
             SessionModel.store_id == store_id,
             SessionModel.is_staff == False,
             SessionModel.converted == True,
+            SessionModel.start_time >= start,
+            SessionModel.start_time < end,
         )
     )
     purchase_count = (await db.execute(s4)).scalar() or 0

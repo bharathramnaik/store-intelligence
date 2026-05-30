@@ -33,6 +33,16 @@ async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> Heat
     )
     total_sessions = (await db.execute(sess_stmt)).scalar() or 0
 
+    # Only count ZONE_ENTER from visitors who entered the store
+    entering_ids = select(EventModel.visitor_id).where(
+        and_(
+            EventModel.store_id == store_id,
+            EventModel.is_staff == False,
+            EventModel.event_type.in_(["ENTRY", "REENTRY"]),
+            EventModel.timestamp >= start,
+            EventModel.timestamp < end,
+        )
+    )
     stmt = select(
         EventModel.zone_id,
         func.count().label("visit_freq"),
@@ -43,6 +53,7 @@ async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> Heat
             EventModel.event_type == "ZONE_ENTER",
             EventModel.timestamp >= start,
             EventModel.timestamp < end,
+            EventModel.visitor_id.in_(entering_ids),
         )
     ).group_by(EventModel.zone_id)
 
@@ -60,6 +71,7 @@ async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> Heat
             EventModel.dwell_ms > 0,
             EventModel.timestamp >= start,
             EventModel.timestamp < end,
+            EventModel.visitor_id.in_(entering_ids),
         )
     ).group_by(EventModel.zone_id)
     dwell_rows = {

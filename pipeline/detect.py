@@ -13,7 +13,6 @@ from ultralytics import YOLO
 
 from pipeline.direction import DirectionTracker
 from pipeline.zones import ZoneMapper
-from pipeline.staff import StaffClassifier
 from pipeline.tracker import SessionManager
 from pipeline.queue import QueueDetector
 from pipeline.emit import EventEmitter
@@ -40,7 +39,6 @@ class DetectionPipeline:
         self.model.fuse()
 
         self.zone_mapper = ZoneMapper(store_layout_path)
-        self.staff_classifier = StaffClassifier()
         self.session_manager = SessionManager()
         self.queue_detector = QueueDetector()
         self.direction_tracker: DirectionTracker | None = None
@@ -68,6 +66,8 @@ class DetectionPipeline:
         self.track_zone: dict[int, str | None] = {}
         self.track_dwell_start: dict[int, datetime] = {}
         self.track_in_queue: dict[int, bool] = {}
+        # Entry camera: tracks awaiting direction confirmation before emitting ENTRY
+        self.pending_entries: dict[int, dict] = {}
 
     def _resolve_model_path(self, model_name: str) -> str:
         explicit = Path(model_name)
@@ -169,13 +169,10 @@ class DetectionPipeline:
                     )
                     appearance = self._compute_appearance_hist(frame, (x1, y1, x2, y2))
 
-                    # Staff classification
-                    history = self.session_manager.get_visitor_history(self.track_visitor_map.get(track_id, ""))
-                    is_staff, staff_conf = self.staff_classifier.classify(frame, (x1, y1, x2, y2), history)
-                    if self.camera_role == "staff":
-                        is_staff = True
-                        staff_conf = max(staff_conf, 0.95)
-                    final_conf = round(conf * staff_conf, 2) if is_staff else round(conf, 2)
+                    # Staff classification: only staff cameras auto-mark as staff
+                    is_staff = self.camera_role == "staff"
+                    staff_conf = 0.95 if is_staff else 1.0
+                    final_conf = round(conf, 2)
 
                     detections.append({
                         "track_id": track_id,
@@ -200,25 +197,32 @@ class DetectionPipeline:
 
                 # Assign or recover visitor_id
                 if track_id not in self.track_visitor_map:
-                    # Try re-entry first
-                    reentry_vid = self.session_manager.try_reentry(
-                        track_id, self.store_id, timestamp, appearance
-                    )
-                    if reentry_vid:
-                        self.track_visitor_map[track_id] = reentry_vid
-                        self.emitter.emit(self._make_event(
-                            "REENTRY", reentry_vid, timestamp,
-                            is_staff=det["is_staff"], confidence=det["confidence"]
-                        ))
+                    if self.camera_role == "entry":
+                        # Buffer ENTER decision — wait for DirectionTracker
+                        reentry_vid = self.session_manager.try_reentry(
+                            track_id, self.store_id, timestamp, appearance
+                        )
+                        if reentry_vid:
+                            self.track_visitor_map[track_id] = reentry_vid
+                            self.pending_entries[track_id] = {
+                                "visitor_id": reentry_vid, "is_staff": det["is_staff"],
+                                "is_reentry": True, "first_seen": timestamp,
+                            }
+                        else:
+                            vid = self.session_manager.start_session(
+                                track_id, self.store_id, timestamp, det["is_staff"]
+                            )
+                            self.track_visitor_map[track_id] = vid
+                            self.pending_entries[track_id] = {
+                                "visitor_id": vid, "is_staff": det["is_staff"],
+                                "is_reentry": False, "first_seen": timestamp,
+                            }
                     else:
+                        # Non-entry cameras: silent creation, no ENTRY events
                         vid = self.session_manager.start_session(
                             track_id, self.store_id, timestamp, det["is_staff"]
                         )
                         self.track_visitor_map[track_id] = vid
-                        self.emitter.emit(self._make_event(
-                            "ENTRY", vid, timestamp,
-                            is_staff=det["is_staff"], confidence=det["confidence"]
-                        ))
 
                 visitor_id = self.track_visitor_map[track_id]
                 self.session_manager.update_appearance(visitor_id, appearance)
@@ -227,10 +231,33 @@ class DetectionPipeline:
                 # Direction detection for entry camera
                 if self.camera_role == "entry" and self.direction_tracker:
                     direction = self.direction_tracker.update(track_id, det["cx"], det["cy"])
+
+                    if track_id in self.pending_entries:
+                        pe = self.pending_entries[track_id]
+                        if direction == "ENTRY":
+                            self.pending_entries.pop(track_id)
+                            event_type = "REENTRY" if pe["is_reentry"] else "ENTRY"
+                            self.emitter.emit(self._make_event(
+                                event_type, pe["visitor_id"], timestamp,
+                                is_staff=pe["is_staff"], confidence=det["confidence"],
+                            ))
+                        elif direction == "EXIT":
+                            # Person was exiting the store — not a visit
+                            self.pending_entries.pop(track_id)
+                            self.session_manager.close_session(pe["visitor_id"], timestamp)
+                            self.track_visitor_map.pop(track_id, None)
+                            continue
+                        elif (timestamp - pe["first_seen"]).total_seconds() > 30:
+                            # Timeout: person never clearly entered, close silently
+                            self.pending_entries.pop(track_id)
+                            self.session_manager.close_session(pe["visitor_id"], timestamp)
+                            self.track_visitor_map.pop(track_id, None)
+                            continue
+
                     if direction == "EXIT":
                         self.emitter.emit(self._make_event(
                             "EXIT", visitor_id, timestamp,
-                            is_staff=det["is_staff"], confidence=det["confidence"]
+                            is_staff=det["is_staff"], confidence=det["confidence"],
                         ))
                         self.session_manager.close_session(visitor_id, timestamp)
                         self.track_visitor_map.pop(track_id, None)
@@ -268,14 +295,22 @@ class DetectionPipeline:
                             self.track_dwell_start[track_id] = timestamp
 
                 # Billing queue logic
-                if self.camera_role == "billing" and curr_zone == "BILLING":
-                    if queue_depth and queue_depth > 0 and not self.track_in_queue.get(track_id, False):
+                if curr_zone == "BILLING":
+                    if self.camera_role == "billing" and queue_depth and queue_depth > 0 and not self.track_in_queue.get(track_id, False):
                         self.track_in_queue[track_id] = True
-                        meta = {"queue_depth": queue_depth, "sku_zone": curr_zone, "session_seq": 0}
+                        seq = self.session_manager.get_session_seq(visitor_id)
+                        meta = {"queue_depth": queue_depth, "sku_zone": curr_zone, "session_seq": seq}
                         self.emitter.emit(self._make_event(
                             "BILLING_QUEUE_JOIN", visitor_id, timestamp, zone_id=curr_zone,
                             is_staff=det["is_staff"], confidence=det["confidence"], metadata=meta
                         ))
+                # Abandon detection: left billing zone while in queue
+                if prev_zone == "BILLING" and curr_zone != "BILLING" and self.track_in_queue.get(track_id, False):
+                    self.track_in_queue[track_id] = False
+                    self.emitter.emit(self._make_event(
+                        "BILLING_QUEUE_ABANDON", visitor_id, timestamp, zone_id=prev_zone,
+                        is_staff=det["is_staff"], confidence=det["confidence"],
+                    ))
 
             processed += 1
             if processed % 100 == 0:

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Users, ShoppingCart, Timer, UsersRound, DoorOpen } from 'lucide-react'
+import { Users, ShoppingCart, Timer, UsersRound, DoorOpen, AlertTriangle } from 'lucide-react'
 import { MetricCard } from '../components/MetricCard'
 import { FunnelChart } from '../components/FunnelChart'
 import { HeatmapChart } from '../components/HeatmapChart'
@@ -10,7 +10,6 @@ interface DashboardProps {
   storeId: string
 }
 
-// Generate mock historical data for the live chart
 function generateMockHistory(baseValue: number, points: number = 20) {
   return Array.from({ length: points }, (_, i) => ({
     time: `${String(Math.floor(i / 2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`,
@@ -19,7 +18,7 @@ function generateMockHistory(baseValue: number, points: number = 20) {
 }
 
 export function Dashboard({ storeId }: DashboardProps) {
-  const { data: metrics, loading: metricsLoading } = useMetrics(storeId, { refreshInterval: 8000 })
+  const { data: metrics, loading: metricsLoading, error: metricsError } = useMetrics(storeId, { refreshInterval: 8000 })
   const { data: funnel, loading: funnelLoading } = useFunnel(storeId, { refreshInterval: 15000 })
   const { data: heatmap, loading: heatmapLoading } = useHeatmap(storeId, { refreshInterval: 20000 })
 
@@ -35,6 +34,12 @@ export function Dashboard({ storeId }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      {metricsError && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-red-300">{metricsError}</span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

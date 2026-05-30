@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.logging import logger, LoggingMiddleware
@@ -68,7 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_exception_handler(Exception, global_exception_handler)
-app.add_exception_handler(OperationalError, db_exception_handler)
+app.add_exception_handler(SQLAlchemyError, db_exception_handler)
 
 app.include_router(ingestion_router)
 app.include_router(metrics_router)

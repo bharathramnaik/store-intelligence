@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.logging import logger
 
@@ -19,7 +19,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-async def db_exception_handler(request: Request, exc: OperationalError) -> JSONResponse:
+async def db_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
     trace_id = getattr(request.state, "trace_id", str(uuid.uuid4()))
     logger.error("database_unavailable", trace_id=trace_id, error=str(exc))
     return JSONResponse(

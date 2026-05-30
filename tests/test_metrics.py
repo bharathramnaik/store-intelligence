@@ -104,3 +104,19 @@ class TestMetrics:
         assert response.status_code == 200
         data = response.json()
         assert data["unique_visitors"] == 1  # deduplicated
+
+    async def test_abandonment_and_queue_depth(self, client: AsyncClient, db):
+        now = datetime.now(timezone.utc)
+        vid = "VIS_ABANDON1"
+        events = [
+            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=2)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 5}},
+            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_ABANDON", "timestamp": (now + timedelta(minutes=5)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": "VIS_ABANDON2", "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=3)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 3}},
+        ]
+        await client.post("/events/ingest", json=events)
+        response = await client.get("/stores/STORE_ABANDON/metrics")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["queue_depth"] == 3  # latest BILLING_QUEUE_JOIN
+        assert data["abandonment_rate"] > 0

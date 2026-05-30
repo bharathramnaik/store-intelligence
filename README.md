@@ -17,8 +17,8 @@ docker compose up -d
 # 4. Verify tests
 docker compose exec api pytest
 
-# 5. Run detection pipeline on clips
-python -m pipeline.run --clips-dir ./data/clips --output-dir ./data/events --store-layout ./data/store_layout.json
+# 5. Ingest sample events
+docker compose exec api python -m scripts.ingest_events
 ```
 
 ## Architecture
@@ -41,13 +41,13 @@ GET /health                   → Feed staleness
 Streamlit Dashboard (localhost:8501)
 ```
 
-## Running the Detection Pipeline
+## End-to-End Pipeline: CCTV → API
 
-Place your CCTV clips in `./data/clips/` and `store_layout.json` in `./data/`.
+### Step 1: Run detection on CCTV clips
+Place clips in `./data/clips/` and ensure `./data/store_layout.json` exists.
 
 ```bash
-docker compose exec api bash
-python -m pipeline.run \
+docker compose exec api python -m pipeline.run \
     --clips-dir /data/clips \
     --output-dir /data/events \
     --store-layout /data/store_layout.json \
@@ -56,16 +56,38 @@ python -m pipeline.run \
 
 Events are written to `/data/events/*.jsonl`.
 
-## Ingesting Events into the API
+### Step 2: Ingest events into the API
 
 ```bash
-# Batch ingest
-curl -X POST http://localhost:8000/events/ingest \
-  -H "Content-Type: application/json" \
-  -d @./data/events/STORE_X_CAM_Y.jsonl
+python scripts/ingest_events.py --events-dir data/events
 ```
 
-Or use the provided runner script that pipes pipeline output directly to the API.
+### Step 3: Ingest POS transactions & correlate
+
+```bash
+docker compose cp data/pos_transactions.csv api:/data/pos_transactions.csv
+docker compose exec api python /app/ingest_pos.py
+```
+
+The correlation background task runs every 60 seconds and matches billing-zone visitors to transactions within a 5-minute window.
+
+### Step 4: Cross-camera deduplication
+
+The entry camera (CAM_ENTRY_01) and floor cameras (CAM_FLOOR_01, CAM_FLOOR_02) have overlapping fields of view. Without deduplication, a single person walking between zones gets multiple `visitor_id`s, inflating visitor counts.
+
+```bash
+docker compose exec api python /app/merge_duplicates.py
+```
+
+This merges sessions from overlapping cameras with time-overlapping windows (>5s), keeping the earliest session as canonical. Deployed as a post-ingestion step.
+
+### One-command runner
+
+```bash
+bash pipeline/run.sh
+```
+
+This processes all clips, ingests events, loads POS transactions, and runs deduplication.
 
 ## API Endpoints
 
