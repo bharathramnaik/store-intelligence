@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
     model_path: str = "/models"
     log_level: str = "INFO"
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = int(os.environ.get("PORT", "8000"))
 
 
 settings = Settings()
