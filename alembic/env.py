@@ -15,15 +15,16 @@ def run_migrations_online() -> None:
     from app.core.config import settings
     connectable = settings.database_url
     from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy import text
     import asyncio
 
     engine = create_async_engine(connectable, poolclass=pool.NullPool)
 
     async def run():
         async with engine.begin() as conn:
-            await conn.run_sync(context.configure, connection=conn, target_metadata=target_metadata)
-            await conn.run_sync(context.run_migrations)
+            def do_run_migrations(connection):
+                context.configure(connection=connection, target_metadata=target_metadata)
+                context.run_migrations()
+            await conn.run_sync(do_run_migrations)
 
     asyncio.run(run())
 
