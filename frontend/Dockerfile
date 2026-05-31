@@ -1,16 +1,12 @@
-FROM node:20-alpine
-
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Install dependencies
 COPY package.json ./
-RUN npm install
-
-# Install tailwindcss-animate
-RUN npm install tailwindcss-animate
-
+RUN npm install && npm install tailwindcss-animate
 COPY . .
+RUN npm run build
 
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-
-CMD ["npm", "run", "dev"]
+CMD ["nginx", "-g", "daemon off;"]

@@ -22,3 +22,6 @@ models/*.pt
 .DS_Store
 .idea/
 .vscode/
+*.pdf
+yolov8n.pt
+frontend/dist/
