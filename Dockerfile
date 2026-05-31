@@ -3,9 +3,10 @@ FROM python:3.11-slim AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends     gcc libpq-dev && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md alembic.ini ./
 COPY app/ ./app/
 COPY scripts/ ./scripts/
+COPY alembic/ ./alembic/
 RUN pip install --no-cache-dir --upgrade pip &&     pip install --no-cache-dir ".[dev]"
 
 FROM python:3.11-slim
@@ -15,6 +16,8 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY app/ ./app/
 COPY scripts/ ./scripts/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 ENV PYTHONPATH=/app
 EXPOSE 8000
