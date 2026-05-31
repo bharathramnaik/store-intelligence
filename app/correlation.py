@@ -44,6 +44,8 @@ async def correlate_pos_transactions(db: AsyncSession) -> None:
                 .values(converted=True)
             )
             txn.correlated = True
-            logger.info("pos_correlated", transaction_id=txn.transaction_id, visitors=len(visitor_ids))
+            logger.info(
+                "pos_correlated", transaction_id=txn.transaction_id, visitors=len(visitor_ids)
+            )
 
     await db.commit()

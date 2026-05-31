@@ -10,7 +10,9 @@ import asyncpg
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Ingest POS transactions CSV into the database")
     parser.add_argument("--csv", required=True, help="Path to pos_transactions.csv")
-    parser.add_argument("--dsn", default="postgresql://postgres:postgres@localhost:5432/store_intelligence")
+    parser.add_argument(
+        "--dsn", default="postgresql://postgres:postgres@localhost:5432/store_intelligence"
+    )
     args = parser.parse_args()
 
     conn = await asyncpg.connect(args.dsn)

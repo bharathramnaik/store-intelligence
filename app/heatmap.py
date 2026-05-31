@@ -36,37 +36,45 @@ async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> Heat
             EventModel.timestamp < end,
         )
     )
-    stmt = select(
-        EventModel.zone_id,
-        func.count().label("visit_freq"),
-    ).where(
-        and_(
-            EventModel.store_id == store_id,
-            EventModel.is_staff == False,
-            EventModel.event_type == "ZONE_ENTER",
-            EventModel.timestamp >= start,
-            EventModel.timestamp < end,
-            EventModel.visitor_id.in_(entering_ids),
+    stmt = (
+        select(
+            EventModel.zone_id,
+            func.count().label("visit_freq"),
         )
-    ).group_by(EventModel.zone_id)
+        .where(
+            and_(
+                EventModel.store_id == store_id,
+                EventModel.is_staff == False,
+                EventModel.event_type == "ZONE_ENTER",
+                EventModel.timestamp >= start,
+                EventModel.timestamp < end,
+                EventModel.visitor_id.in_(entering_ids),
+            )
+        )
+        .group_by(EventModel.zone_id)
+    )
 
     result = await db.execute(stmt)
     rows = result.all()
 
-    dwell_stmt = select(
-        EventModel.zone_id,
-        func.avg(EventModel.dwell_ms).label("avg_dwell"),
-    ).where(
-        and_(
-            EventModel.store_id == store_id,
-            EventModel.is_staff == False,
-            EventModel.event_type.in_(["ZONE_DWELL", "ZONE_EXIT"]),
-            EventModel.dwell_ms > 0,
-            EventModel.timestamp >= start,
-            EventModel.timestamp < end,
-            EventModel.visitor_id.in_(entering_ids),
+    dwell_stmt = (
+        select(
+            EventModel.zone_id,
+            func.avg(EventModel.dwell_ms).label("avg_dwell"),
         )
-    ).group_by(EventModel.zone_id)
+        .where(
+            and_(
+                EventModel.store_id == store_id,
+                EventModel.is_staff == False,
+                EventModel.event_type.in_(["ZONE_DWELL", "ZONE_EXIT"]),
+                EventModel.dwell_ms > 0,
+                EventModel.timestamp >= start,
+                EventModel.timestamp < end,
+                EventModel.visitor_id.in_(entering_ids),
+            )
+        )
+        .group_by(EventModel.zone_id)
+    )
     dwell_rows = {
         row.zone_id: round(row.avg_dwell or 0.0, 2)
         for row in (await db.execute(dwell_stmt)).all()
@@ -81,14 +89,17 @@ async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> Heat
         for r in rows:
             norm = (
                 (r.visit_freq - min_freq) / (max_freq - min_freq) * 100
-                if max_freq > min_freq else 100.0
+                if max_freq > min_freq
+                else 100.0
             )
-            zones.append(HeatmapZone(
-                zone_id=r.zone_id or "UNKNOWN",
-                visit_frequency=r.visit_freq,
-                avg_dwell_ms=dwell_rows.get(r.zone_id or "", 0.0),
-                normalized_score=round(norm, 2),
-            ))
+            zones.append(
+                HeatmapZone(
+                    zone_id=r.zone_id or "UNKNOWN",
+                    visit_frequency=r.visit_freq,
+                    avg_dwell_ms=dwell_rows.get(r.zone_id or "", 0.0),
+                    normalized_score=round(norm, 2),
+                )
+            )
 
     return HeatmapOut(
         store_id=store_id,

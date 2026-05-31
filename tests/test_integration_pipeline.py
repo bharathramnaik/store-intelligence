@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 
-
 EVENTS_DIR = Path("data/events")
 
 

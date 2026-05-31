@@ -29,6 +29,7 @@ class TestErrors:
     async def test_unhandled_exception_handler_directly(self):
         from app.core.errors import global_exception_handler
         from fastapi import Request
+
         exc = ValueError("Something unexpected broke")
         req = Request({"type": "http", "method": "GET", "path": "/test", "headers": []})
         response = await global_exception_handler(req, exc)

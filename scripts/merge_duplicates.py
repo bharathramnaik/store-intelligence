@@ -16,7 +16,6 @@ Overlapping camera pairs (from store_layout.json zone assignments):
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 
 import asyncpg
@@ -153,7 +152,7 @@ async def main() -> None:
         merged_count = 0
         for remove_vid, keep_vid in remove_map.items():
             # Reassign all events from the duplicate visitor to the canonical visitor
-            update_events = await conn.execute(
+            await conn.execute(
                 "UPDATE events SET visitor_id = $1 WHERE visitor_id = $2",
                 keep_vid,
                 remove_vid,

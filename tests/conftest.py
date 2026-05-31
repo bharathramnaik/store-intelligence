@@ -33,7 +33,13 @@ async def setup_db():
 @pytest_asyncio.fixture(loop_scope="session")
 async def clean_db():
     async with AsyncSessionLocal() as session:
-        for model in (AnomalyModel, DailyMetricModel, PosTransactionModel, EventModel, SessionModel):
+        for model in (
+            AnomalyModel,
+            DailyMetricModel,
+            PosTransactionModel,
+            EventModel,
+            SessionModel,
+        ):
             await session.execute(delete(model))
         await session.commit()
 

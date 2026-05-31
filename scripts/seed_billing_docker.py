@@ -1,8 +1,12 @@
-import uuid, json, asyncio, asyncpg
+import uuid
+import json
+import asyncio
+import asyncpg
 from datetime import datetime, timezone, timedelta
 
+
 async def main():
-    conn = await asyncpg.connect('postgresql://postgres:postgres@db:5432/store_intelligence')
+    conn = await asyncpg.connect("postgresql://postgres:postgres@db:5432/store_intelligence")
 
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -37,8 +41,16 @@ async def main():
             " timestamp, zone_id, dwell_ms, is_staff, confidence, metadata_json)"
             " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)"
             " ON CONFLICT (event_id) DO NOTHING",
-            evt_id, session["store_id"], "CAM_FLOOR_01", vid,
-            "BILLING_QUEUE_JOIN", billing_ts, "BILLING", 0, False, 0.85,
+            evt_id,
+            session["store_id"],
+            "CAM_FLOOR_01",
+            vid,
+            "BILLING_QUEUE_JOIN",
+            billing_ts,
+            "BILLING",
+            0,
+            False,
+            0.85,
             json.dumps({"queue_depth": 2, "sku_zone": "BILLING", "session_seq": 0}),
         )
         billing_count += 1
@@ -57,13 +69,22 @@ async def main():
             " timestamp, zone_id, dwell_ms, is_staff, confidence, metadata_json)"
             " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)"
             " ON CONFLICT (event_id) DO NOTHING",
-            evt_id, session["store_id"], "CAM_FLOOR_01", vid,
-            "BILLING_QUEUE_ABANDON", ts, "BILLING", 120000, False, 0.85,
+            evt_id,
+            session["store_id"],
+            "CAM_FLOOR_01",
+            vid,
+            "BILLING_QUEUE_ABANDON",
+            ts,
+            "BILLING",
+            120000,
+            False,
+            0.85,
             json.dumps({"queue_depth": None, "sku_zone": "BILLING", "session_seq": 0}),
         )
         abandon_count += 1
 
     print(f"Injected {abandon_count} BILLING_QUEUE_ABANDON events")
     await conn.close()
+
 
 asyncio.run(main())

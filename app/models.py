@@ -21,8 +21,14 @@ class EventIngest(BaseModel):
     camera_id: str
     visitor_id: str
     event_type: Literal[
-        "ENTRY", "EXIT", "ZONE_ENTER", "ZONE_EXIT", "ZONE_DWELL",
-        "BILLING_QUEUE_JOIN", "BILLING_QUEUE_ABANDON", "REENTRY"
+        "ENTRY",
+        "EXIT",
+        "ZONE_ENTER",
+        "ZONE_EXIT",
+        "ZONE_DWELL",
+        "BILLING_QUEUE_JOIN",
+        "BILLING_QUEUE_ABANDON",
+        "REENTRY",
     ]
     timestamp: datetime
     zone_id: str | None = None

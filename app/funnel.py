@@ -82,19 +82,30 @@ async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> Funne
         FunnelStage(
             stage="Zone Visit",
             count=zone_count,
-            drop_off_pct=round((entry_count - zone_count) / entry_count * 100, 2) if entry_count else 0.0,
+            drop_off_pct=(
+                round((entry_count - zone_count) / entry_count * 100, 2) if entry_count else 0.0
+            ),
         ),
         FunnelStage(
             stage="Billing Queue",
             count=queue_count,
-            drop_off_pct=round((zone_count - queue_count) / zone_count * 100, 2) if zone_count else 0.0,
+            drop_off_pct=(
+                round((zone_count - queue_count) / zone_count * 100, 2) if zone_count else 0.0
+            ),
         ),
         FunnelStage(
             stage="Purchase",
             count=purchase_count,
-            drop_off_pct=round((queue_count - purchase_count) / queue_count * 100, 2) if queue_count else 0.0,
+            drop_off_pct=(
+                round((queue_count - purchase_count) / queue_count * 100, 2) if queue_count else 0.0
+            ),
         ),
     ]
 
     data_confidence: Literal["LOW", "HIGH"] = "HIGH" if entry_count >= 20 else "LOW"
-    return FunnelOut(store_id=store_id, stages=stages, total_sessions=entry_count, data_confidence=data_confidence)
+    return FunnelOut(
+        store_id=store_id,
+        stages=stages,
+        total_sessions=entry_count,
+        data_confidence=data_confidence,
+    )

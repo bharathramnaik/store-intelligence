@@ -56,30 +56,37 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
             EventModel.timestamp < end,
         )
     )
-    dwell_stmt = select(
-        EventModel.zone_id, func.avg(EventModel.dwell_ms)
-    ).where(
-        and_(
-            EventModel.store_id == store_id,
-            EventModel.is_staff == False,
-            EventModel.event_type.in_(["ZONE_DWELL", "ZONE_EXIT"]),
-            EventModel.dwell_ms > 0,
-            EventModel.timestamp >= start,
-            EventModel.timestamp < end,
-            EventModel.visitor_id.in_(entering_ids),
+    dwell_stmt = (
+        select(EventModel.zone_id, func.avg(EventModel.dwell_ms))
+        .where(
+            and_(
+                EventModel.store_id == store_id,
+                EventModel.is_staff == False,
+                EventModel.event_type.in_(["ZONE_DWELL", "ZONE_EXIT"]),
+                EventModel.dwell_ms > 0,
+                EventModel.timestamp >= start,
+                EventModel.timestamp < end,
+                EventModel.visitor_id.in_(entering_ids),
+            )
         )
-    ).group_by(EventModel.zone_id)
+        .group_by(EventModel.zone_id)
+    )
     dwell_result = await db.execute(dwell_stmt)
     avg_dwell_per_zone = {row[0]: round(row[1] or 0.0, 2) for row in dwell_result.all() if row[0]}
 
     # Latest queue depth from BILLING_QUEUE_JOIN metadata (non-staff only)
-    q_stmt = select(EventModel.metadata_json).where(
-        and_(
-            EventModel.store_id == store_id,
-            EventModel.event_type == "BILLING_QUEUE_JOIN",
-            EventModel.is_staff == False,
+    q_stmt = (
+        select(EventModel.metadata_json)
+        .where(
+            and_(
+                EventModel.store_id == store_id,
+                EventModel.event_type == "BILLING_QUEUE_JOIN",
+                EventModel.is_staff == False,
+            )
         )
-    ).order_by(EventModel.timestamp.desc()).limit(1)
+        .order_by(EventModel.timestamp.desc())
+        .limit(1)
+    )
     q_result = await db.execute(q_stmt)
     latest_meta = q_result.scalar()
     queue_depth = latest_meta.get("queue_depth") if latest_meta else 0

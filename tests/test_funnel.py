@@ -15,14 +15,49 @@ class TestFunnel:
         now = datetime.now(timezone.utc)
         vid = "VIS_FUNNEL1"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_FUN", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_FUN", "camera_id": "CAM_FLOOR", "visitor_id": vid, "event_type": "ZONE_ENTER", "timestamp": (now + timedelta(minutes=1)).isoformat(), "zone_id": "SKINCARE", "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_FUN", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=3)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 2}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_FUN",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_FUN",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": vid,
+                "event_type": "ZONE_ENTER",
+                "timestamp": (now + timedelta(minutes=1)).isoformat(),
+                "zone_id": "SKINCARE",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_FUN",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": (now + timedelta(minutes=3)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {"queue_depth": 2},
+            },
         ]
         await client.post("/events/ingest", json=events)
         async with get_db_context() as db:
             from sqlalchemy import text
-            await db.execute(text("UPDATE sessions SET converted = true WHERE visitor_id = :vid"), {"vid": vid})
+
+            await db.execute(
+                text("UPDATE sessions SET converted = true WHERE visitor_id = :vid"), {"vid": vid}
+            )
         response = await client.get("/stores/STORE_FUN/funnel")
         assert response.status_code == 200
         data = response.json()
@@ -38,8 +73,28 @@ class TestFunnel:
         now = datetime.now(timezone.utc)
         vid = "VIS_FUNNEL2"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_FUN2", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": (now - timedelta(hours=2)).isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_FUN2", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "REENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.85, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_FUN2",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": (now - timedelta(hours=2)).isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_FUN2",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "REENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.85,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_FUN2/funnel")
@@ -60,11 +115,22 @@ class TestFunnel:
         now = datetime.now(timezone.utc)
         for i in range(5):
             vid = f"VIS_DCLOW_{i}"
-            await client.post("/events/ingest", json=[{
-                "event_id": str(uuid4()), "store_id": "STORE_DCLOW", "camera_id": "CAM_ENTRY",
-                "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(),
-                "is_staff": False, "confidence": 0.9, "metadata": {},
-            }])
+            await client.post(
+                "/events/ingest",
+                json=[
+                    {
+                        "event_id": str(uuid4()),
+                        "store_id": "STORE_DCLOW",
+                        "camera_id": "CAM_ENTRY",
+                        "visitor_id": vid,
+                        "event_type": "ENTRY",
+                        "timestamp": now.isoformat(),
+                        "is_staff": False,
+                        "confidence": 0.9,
+                        "metadata": {},
+                    }
+                ],
+            )
         response = await client.get("/stores/STORE_DCLOW/funnel")
         assert response.status_code == 200
         assert response.json()["data_confidence"] == "LOW"
@@ -74,11 +140,19 @@ class TestFunnel:
         now = datetime.now(timezone.utc)
         events = []
         for i in range(20):
-            events.append({
-                "event_id": str(uuid4()), "store_id": "STORE_DCHIGH", "camera_id": "CAM_ENTRY",
-                "visitor_id": f"VIS_DCHIGH_{i}", "event_type": "ENTRY", "timestamp": now.isoformat(),
-                "is_staff": False, "confidence": 0.9, "metadata": {},
-            })
+            events.append(
+                {
+                    "event_id": str(uuid4()),
+                    "store_id": "STORE_DCHIGH",
+                    "camera_id": "CAM_ENTRY",
+                    "visitor_id": f"VIS_DCHIGH_{i}",
+                    "event_type": "ENTRY",
+                    "timestamp": now.isoformat(),
+                    "is_staff": False,
+                    "confidence": 0.9,
+                    "metadata": {},
+                }
+            )
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_DCHIGH/funnel")
         assert response.status_code == 200

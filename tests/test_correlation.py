@@ -18,8 +18,29 @@ class TestCorrelation:
         now = datetime.now(timezone.utc)
         vid = "VIS_CORR1"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=2)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 2}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": (now + timedelta(minutes=2)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {"queue_depth": 2},
+            },
         ]
         await client.post("/events/ingest", json=events)
 
@@ -38,9 +59,7 @@ class TestCorrelation:
             await correlate_pos_transactions(db)
 
         async with get_db_context() as db:
-            result = await db.execute(
-                select(SessionModel).where(SessionModel.visitor_id == vid)
-            )
+            result = await db.execute(select(SessionModel).where(SessionModel.visitor_id == vid))
             session = result.scalar_one()
             assert session.converted is True
 
@@ -48,8 +67,29 @@ class TestCorrelation:
         now = datetime.now(timezone.utc)
         vid = "VIS_CORR2"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR2", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR2", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": now.isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 1}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR2",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR2",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": now.isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {"queue_depth": 1},
+            },
         ]
         await client.post("/events/ingest", json=events)
 
@@ -68,9 +108,7 @@ class TestCorrelation:
             await correlate_pos_transactions(db)
 
         async with get_db_context() as db:
-            result = await db.execute(
-                select(SessionModel).where(SessionModel.visitor_id == vid)
-            )
+            result = await db.execute(select(SessionModel).where(SessionModel.visitor_id == vid))
             session = result.scalar_one()
             assert session.converted is False
 
@@ -78,8 +116,29 @@ class TestCorrelation:
         now = datetime.now(timezone.utc)
         vid = "VIS_CORR3"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR3", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": True, "confidence": 0.95, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_CORR3", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=1)).isoformat(), "zone_id": "BILLING", "is_staff": True, "confidence": 0.95, "metadata": {"queue_depth": 1}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR3",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": True,
+                "confidence": 0.95,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_CORR3",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": (now + timedelta(minutes=1)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": True,
+                "confidence": 0.95,
+                "metadata": {"queue_depth": 1},
+            },
         ]
         await client.post("/events/ingest", json=events)
 
@@ -98,8 +157,6 @@ class TestCorrelation:
             await correlate_pos_transactions(db)
 
         async with get_db_context() as db:
-            result = await db.execute(
-                select(SessionModel).where(SessionModel.visitor_id == vid)
-            )
+            result = await db.execute(select(SessionModel).where(SessionModel.visitor_id == vid))
             session = result.scalar_one()
             assert session.converted is False

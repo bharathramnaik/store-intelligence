@@ -20,9 +20,42 @@ class TestHeatmap:
         now = datetime.now(timezone.utc)
         vid = "VIS_HEAT1"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT1", "camera_id": "CAM_FLOOR", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT1", "camera_id": "CAM_FLOOR", "visitor_id": vid, "event_type": "ZONE_ENTER", "timestamp": (now + timedelta(seconds=10)).isoformat(), "zone_id": "SKINCARE", "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT1", "camera_id": "CAM_FLOOR", "visitor_id": vid, "event_type": "ZONE_DWELL", "timestamp": (now + timedelta(seconds=60)).isoformat(), "zone_id": "SKINCARE", "dwell_ms": 30000, "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT1",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT1",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": vid,
+                "event_type": "ZONE_ENTER",
+                "timestamp": (now + timedelta(seconds=10)).isoformat(),
+                "zone_id": "SKINCARE",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT1",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": vid,
+                "event_type": "ZONE_DWELL",
+                "timestamp": (now + timedelta(seconds=60)).isoformat(),
+                "zone_id": "SKINCARE",
+                "dwell_ms": 30000,
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_HEAT1/heatmap")
@@ -38,8 +71,29 @@ class TestHeatmap:
     async def test_staff_excluded_from_heatmap(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT2", "camera_id": "CAM_FLOOR", "visitor_id": "VIS_STAFF_HEAT", "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": True, "confidence": 0.95, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT2", "camera_id": "CAM_FLOOR", "visitor_id": "VIS_STAFF_HEAT", "event_type": "ZONE_ENTER", "timestamp": (now + timedelta(seconds=5)).isoformat(), "zone_id": "SKINCARE", "is_staff": True, "confidence": 0.95, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT2",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": "VIS_STAFF_HEAT",
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": True,
+                "confidence": 0.95,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT2",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": "VIS_STAFF_HEAT",
+                "event_type": "ZONE_ENTER",
+                "timestamp": (now + timedelta(seconds=5)).isoformat(),
+                "zone_id": "SKINCARE",
+                "is_staff": True,
+                "confidence": 0.95,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_HEAT2/heatmap")
@@ -51,17 +105,19 @@ class TestHeatmap:
         now = datetime.now(timezone.utc)
         events = []
         for i in range(25):
-            events.append({
-                "event_id": str(uuid4()),
-                "store_id": "STORE_HEAT3",
-                "camera_id": "CAM_FLOOR",
-                "visitor_id": f"VIS_HEAT3_{i:04d}",
-                "event_type": "ENTRY",
-                "timestamp": now.isoformat(),
-                "is_staff": False,
-                "confidence": 0.9,
-                "metadata": {},
-            })
+            events.append(
+                {
+                    "event_id": str(uuid4()),
+                    "store_id": "STORE_HEAT3",
+                    "camera_id": "CAM_FLOOR",
+                    "visitor_id": f"VIS_HEAT3_{i:04d}",
+                    "event_type": "ENTRY",
+                    "timestamp": now.isoformat(),
+                    "is_staff": False,
+                    "confidence": 0.9,
+                    "metadata": {},
+                }
+            )
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_HEAT3/heatmap")
         assert response.status_code == 200
@@ -71,7 +127,19 @@ class TestHeatmap:
     async def test_dwell_without_zone_enter_no_crash(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_HEAT4", "camera_id": "CAM_FLOOR", "visitor_id": "VIS_DWELL1", "event_type": "ZONE_DWELL", "timestamp": now.isoformat(), "zone_id": "MAKEUP", "dwell_ms": 30000, "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HEAT4",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": "VIS_DWELL1",
+                "event_type": "ZONE_DWELL",
+                "timestamp": now.isoformat(),
+                "zone_id": "MAKEUP",
+                "dwell_ms": 30000,
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_HEAT4/heatmap")

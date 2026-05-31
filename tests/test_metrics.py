@@ -23,17 +23,19 @@ class TestMetrics:
         now = datetime.now(timezone.utc)
         events = []
         for i in range(3):
-            events.append({
-                "event_id": str(uuid4()),
-                "store_id": "STORE_STAFF",
-                "camera_id": "CAM_ENTRY_01",
-                "visitor_id": f"VIS_STF{i}",
-                "event_type": "ENTRY",
-                "timestamp": now.isoformat(),
-                "is_staff": True,
-                "confidence": 0.95,
-                "metadata": {}
-            })
+            events.append(
+                {
+                    "event_id": str(uuid4()),
+                    "store_id": "STORE_STAFF",
+                    "camera_id": "CAM_ENTRY_01",
+                    "visitor_id": f"VIS_STF{i}",
+                    "event_type": "ENTRY",
+                    "timestamp": now.isoformat(),
+                    "is_staff": True,
+                    "confidence": 0.95,
+                    "metadata": {},
+                }
+            )
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_STAFF/metrics")
         assert response.status_code == 200
@@ -43,17 +45,19 @@ class TestMetrics:
 
     async def test_zero_purchases_conversion_zero(self, client: AsyncClient, db):
         now = datetime.now(timezone.utc)
-        events = [{
-            "event_id": str(uuid4()),
-            "store_id": "STORE_NO_BUY",
-            "camera_id": "CAM_ENTRY_01",
-            "visitor_id": "VIS_NOBUY1",
-            "event_type": "ENTRY",
-            "timestamp": now.isoformat(),
-            "is_staff": False,
-            "confidence": 0.9,
-            "metadata": {}
-        }]
+        events = [
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_NO_BUY",
+                "camera_id": "CAM_ENTRY_01",
+                "visitor_id": "VIS_NOBUY1",
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            }
+        ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_NO_BUY/metrics")
         assert response.status_code == 200
@@ -73,7 +77,7 @@ class TestMetrics:
                 "timestamp": (now - timedelta(hours=2)).isoformat(),
                 "is_staff": False,
                 "confidence": 0.9,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "event_id": str(uuid4()),
@@ -84,7 +88,7 @@ class TestMetrics:
                 "timestamp": (now - timedelta(hours=1)).isoformat(),
                 "is_staff": False,
                 "confidence": 0.9,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "event_id": str(uuid4()),
@@ -95,8 +99,8 @@ class TestMetrics:
                 "timestamp": now.isoformat(),
                 "is_staff": False,
                 "confidence": 0.85,
-                "metadata": {}
-            }
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_REENTRY/metrics")
@@ -108,10 +112,53 @@ class TestMetrics:
         now = datetime.now(timezone.utc)
         vid = "VIS_ABANDON1"
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_ENTRY", "visitor_id": vid, "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=2)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 5}},
-            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": vid, "event_type": "BILLING_QUEUE_ABANDON", "timestamp": (now + timedelta(minutes=5)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_ABANDON", "camera_id": "CAM_BILL", "visitor_id": "VIS_ABANDON2", "event_type": "BILLING_QUEUE_JOIN", "timestamp": (now + timedelta(minutes=3)).isoformat(), "zone_id": "BILLING", "is_staff": False, "confidence": 0.9, "metadata": {"queue_depth": 3}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_ABANDON",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": vid,
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_ABANDON",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": (now + timedelta(minutes=2)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {"queue_depth": 5},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_ABANDON",
+                "camera_id": "CAM_BILL",
+                "visitor_id": vid,
+                "event_type": "BILLING_QUEUE_ABANDON",
+                "timestamp": (now + timedelta(minutes=5)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_ABANDON",
+                "camera_id": "CAM_BILL",
+                "visitor_id": "VIS_ABANDON2",
+                "event_type": "BILLING_QUEUE_JOIN",
+                "timestamp": (now + timedelta(minutes=3)).isoformat(),
+                "zone_id": "BILLING",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {"queue_depth": 3},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_ABANDON/metrics")

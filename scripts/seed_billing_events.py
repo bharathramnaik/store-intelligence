@@ -38,7 +38,10 @@ async def main() -> None:
 
         # Find nearest POS transaction within 5 min after this session
         for txn in pos_txns:
-            if txn["timestamp"] > session_start and (txn["timestamp"] - session_start).total_seconds() <= 600:
+            if (
+                txn["timestamp"] > session_start
+                and (txn["timestamp"] - session_start).total_seconds() <= 600
+            ):
                 # Inject BILLING_QUEUE_JOIN ~2 min before transaction
                 billing_ts = txn["timestamp"] - timedelta(minutes=2)
                 evt_id = str(uuid.uuid4())

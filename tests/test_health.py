@@ -8,21 +8,22 @@ from uuid import uuid4
 from httpx import AsyncClient
 
 
-
 class TestHealth:
     async def test_healthy_store_with_recent_event(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
-        events = [{
-            "event_id": str(uuid4()),
-            "store_id": "STORE_HLTH1",
-            "camera_id": "CAM_ENTRY",
-            "visitor_id": "VIS_HLTH1",
-            "event_type": "ENTRY",
-            "timestamp": now.isoformat(),
-            "is_staff": False,
-            "confidence": 0.9,
-            "metadata": {},
-        }]
+        events = [
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HLTH1",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": "VIS_HLTH1",
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            }
+        ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/health")
         assert response.status_code == 200
@@ -35,17 +36,19 @@ class TestHealth:
     async def test_stale_feed(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         old = now - timedelta(minutes=15)
-        events = [{
-            "event_id": str(uuid4()),
-            "store_id": "STORE_HLTH2",
-            "camera_id": "CAM_ENTRY",
-            "visitor_id": "VIS_HLTH2",
-            "event_type": "ENTRY",
-            "timestamp": old.isoformat(),
-            "is_staff": False,
-            "confidence": 0.9,
-            "metadata": {},
-        }]
+        events = [
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_HLTH2",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": "VIS_HLTH2",
+                "event_type": "ENTRY",
+                "timestamp": old.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            }
+        ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/health")
         assert response.status_code == 200
@@ -57,8 +60,28 @@ class TestHealth:
     async def test_multiple_stores_in_health(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_A", "camera_id": "CAM_ENTRY", "visitor_id": "VIS_A", "event_type": "ENTRY", "timestamp": now.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
-            {"event_id": str(uuid4()), "store_id": "STORE_B", "camera_id": "CAM_ENTRY", "visitor_id": "VIS_B", "event_type": "ENTRY", "timestamp": (now - timedelta(minutes=15)).isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_A",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": "VIS_A",
+                "event_type": "ENTRY",
+                "timestamp": now.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_B",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": "VIS_B",
+                "event_type": "ENTRY",
+                "timestamp": (now - timedelta(minutes=15)).isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/health")

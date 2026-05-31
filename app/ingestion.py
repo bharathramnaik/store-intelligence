@@ -27,6 +27,7 @@ async def ingest_events(
     request.state.event_count = len(payload)
     if len(payload) > MAX_BATCH_SIZE:
         from fastapi import HTTPException
+
         raise HTTPException(
             status_code=422,
             detail=f"Batch exceeds max size of {MAX_BATCH_SIZE}",
@@ -45,38 +46,48 @@ async def ingest_events(
 
         try:
             # Upsert event (idempotent by event_id)
-            stmt = pg_insert(EventModel).values(
-                event_id=evt.event_id,
-                store_id=evt.store_id,
-                camera_id=evt.camera_id,
-                visitor_id=evt.visitor_id,
-                event_type=evt.event_type,
-                timestamp=evt.timestamp,
-                zone_id=evt.zone_id,
-                dwell_ms=evt.dwell_ms,
-                is_staff=evt.is_staff,
-                confidence=evt.confidence,
-                metadata_json=evt.metadata.model_dump(),
-            ).on_conflict_do_nothing(
-                index_elements=["event_id"]
-            ).returning(EventModel.event_id)
+            stmt = (
+                pg_insert(EventModel)
+                .values(
+                    event_id=evt.event_id,
+                    store_id=evt.store_id,
+                    camera_id=evt.camera_id,
+                    visitor_id=evt.visitor_id,
+                    event_type=evt.event_type,
+                    timestamp=evt.timestamp,
+                    zone_id=evt.zone_id,
+                    dwell_ms=evt.dwell_ms,
+                    is_staff=evt.is_staff,
+                    confidence=evt.confidence,
+                    metadata_json=evt.metadata.model_dump(),
+                )
+                .on_conflict_do_nothing(index_elements=["event_id"])
+                .returning(EventModel.event_id)
+            )
             inserted_event_id = (await db.execute(stmt)).scalar_one_or_none()
             if inserted_event_id is None:
                 continue
 
             # Upsert session on ENTRY / REENTRY / EXIT
             if evt.event_type in ("ENTRY", "REENTRY"):
-                sess_stmt = pg_insert(SessionModel).values(
-                    visitor_id=evt.visitor_id,
-                    store_id=evt.store_id,
-                    start_time=evt.timestamp,
-                    is_staff=evt.is_staff,
-                ).on_conflict_do_nothing(index_elements=["visitor_id"])
+                sess_stmt = (
+                    pg_insert(SessionModel)
+                    .values(
+                        visitor_id=evt.visitor_id,
+                        store_id=evt.store_id,
+                        start_time=evt.timestamp,
+                        is_staff=evt.is_staff,
+                    )
+                    .on_conflict_do_nothing(index_elements=["visitor_id"])
+                )
                 await db.execute(sess_stmt)
             elif evt.event_type == "EXIT":
                 from sqlalchemy import text
+
                 await db.execute(
-                    text("UPDATE sessions SET end_time = :ts WHERE visitor_id = :vid AND end_time IS NULL"),
+                    text(
+                        "UPDATE sessions SET end_time = :ts WHERE visitor_id = :vid AND end_time IS NULL"
+                    ),
                     {"ts": evt.timestamp, "vid": evt.visitor_id},
                 )
             ingested += 1

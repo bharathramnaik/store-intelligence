@@ -22,7 +22,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.cors_origins_str.split(",") if o.strip()]
+
     redis_url: str = "redis://localhost:6379/0"
+
+    @property
+    def redis_kwargs(self) -> dict:
+        """Return Redis connection kwargs, auto-enabling TLS for Upstash."""
+        return {"url": self.redis_url, "ssl": "upstash" in self.redis_url, "decode_responses": True}
+
     clips_dir: str = "/data/clips"
     output_dir: str = "/data/events"
     store_layout_path: str = "/data/store_layout.json"

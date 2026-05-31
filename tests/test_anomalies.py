@@ -17,7 +17,18 @@ class TestAnomalies:
         now = datetime.now(timezone.utc)
         old = now - timedelta(minutes=35)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_DEAD", "camera_id": "CAM_FLOOR", "visitor_id": "VIS_DEAD1", "event_type": "ZONE_ENTER", "timestamp": old.isoformat(), "zone_id": "SKINCARE", "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_DEAD",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": "VIS_DEAD1",
+                "event_type": "ZONE_ENTER",
+                "timestamp": old.isoformat(),
+                "zone_id": "SKINCARE",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_DEAD/anomalies")
@@ -28,13 +39,26 @@ class TestAnomalies:
         dz = dead_zones[0]
         assert dz["severity"] == "WARN"
         assert "SKINCARE" in dz["message"]
-        assert "lighting" in dz["suggested_action"].lower() or "signage" in dz["suggested_action"].lower()
+        assert (
+            "lighting" in dz["suggested_action"].lower()
+            or "signage" in dz["suggested_action"].lower()
+        )
 
     async def test_stale_feed(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         old = now - timedelta(minutes=15)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_STALE", "camera_id": "CAM_ENTRY", "visitor_id": "VIS_STALE1", "event_type": "ENTRY", "timestamp": old.isoformat(), "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_STALE",
+                "camera_id": "CAM_ENTRY",
+                "visitor_id": "VIS_STALE1",
+                "event_type": "ENTRY",
+                "timestamp": old.isoformat(),
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         response = await client.get("/health")
@@ -51,32 +75,40 @@ class TestAnomalies:
         for day in range(7, 0, -1):
             old = now - timedelta(days=day)
             for _ in range(5):
-                events.append({
+                events.append(
+                    {
+                        "event_id": str(uuid4()),
+                        "store_id": "STORE_QSPIKE",
+                        "camera_id": "CAM_BILL",
+                        "visitor_id": f"VIS_QHIST{day}_{_}",
+                        "event_type": "BILLING_QUEUE_JOIN",
+                        "timestamp": old.isoformat(),
+                        "zone_id": "BILLING",
+                        "is_staff": False,
+                        "confidence": 0.9,
+                        "metadata": {
+                            "queue_depth": day + 1,
+                            "sku_zone": "BILLING",
+                            "session_seq": 1,
+                        },
+                    }
+                )
+
+        for i in range(20):
+            events.append(
+                {
                     "event_id": str(uuid4()),
                     "store_id": "STORE_QSPIKE",
                     "camera_id": "CAM_BILL",
-                    "visitor_id": f"VIS_QHIST{day}_{_}",
+                    "visitor_id": f"VIS_Q{i:03d}",
                     "event_type": "BILLING_QUEUE_JOIN",
-                    "timestamp": old.isoformat(),
+                    "timestamp": now.isoformat(),
                     "zone_id": "BILLING",
                     "is_staff": False,
                     "confidence": 0.9,
-                    "metadata": {"queue_depth": day + 1, "sku_zone": "BILLING", "session_seq": 1}
-                })
-
-        for i in range(20):
-            events.append({
-                "event_id": str(uuid4()),
-                "store_id": "STORE_QSPIKE",
-                "camera_id": "CAM_BILL",
-                "visitor_id": f"VIS_Q{i:03d}",
-                "event_type": "BILLING_QUEUE_JOIN",
-                "timestamp": now.isoformat(),
-                "zone_id": "BILLING",
-                "is_staff": False,
-                "confidence": 0.9,
-                "metadata": {"queue_depth": 50, "sku_zone": "BILLING", "session_seq": 1}
-            })
+                    "metadata": {"queue_depth": 50, "sku_zone": "BILLING", "session_seq": 1},
+                }
+            )
         await client.post("/events/ingest", json=events)
         response = await client.get("/stores/STORE_QSPIKE/anomalies")
         assert response.status_code == 200
@@ -85,39 +117,46 @@ class TestAnomalies:
         assert len(spikes) >= 1
         s = spikes[0]
         assert s["severity"] in ("WARN", "CRITICAL")
-        assert "counter" in s["suggested_action"].lower() or "cashier" in s["suggested_action"].lower()
+        assert (
+            "counter" in s["suggested_action"].lower() or "cashier" in s["suggested_action"].lower()
+        )
 
     async def test_conversion_drop(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         async with get_db_context() as db:
             from app.db.base import DailyMetricModel
+
             varying_rates = [0.30, 0.28, 0.32, 0.25, 0.35, 0.29, 0.31]
             for i in range(7, 0, -1):
                 d = now - timedelta(days=i)
-                db.add(DailyMetricModel(
-                    id=str(uuid4()),
-                    store_id="STORE_CDROP",
-                    metric_date=d.replace(hour=0, minute=0, second=0, microsecond=0),
-                    unique_visitors=100,
-                    conversion_rate=varying_rates[7 - i],
-                    avg_dwell_ms=45000.0,
-                    queue_depth=3,
-                    abandonment_rate=0.05,
-                ))
+                db.add(
+                    DailyMetricModel(
+                        id=str(uuid4()),
+                        store_id="STORE_CDROP",
+                        metric_date=d.replace(hour=0, minute=0, second=0, microsecond=0),
+                        unique_visitors=100,
+                        conversion_rate=varying_rates[7 - i],
+                        avg_dwell_ms=45000.0,
+                        queue_depth=3,
+                        abandonment_rate=0.05,
+                    )
+                )
             await db.commit()
 
         for i in range(100):
-            events = [{
-                "event_id": str(uuid4()),
-                "store_id": "STORE_CDROP",
-                "camera_id": "CAM_ENTRY",
-                "visitor_id": f"VIS_CD{i:04d}",
-                "event_type": "ENTRY",
-                "timestamp": now.isoformat(),
-                "is_staff": False,
-                "confidence": 0.9,
-                "metadata": {},
-            }]
+            events = [
+                {
+                    "event_id": str(uuid4()),
+                    "store_id": "STORE_CDROP",
+                    "camera_id": "CAM_ENTRY",
+                    "visitor_id": f"VIS_CD{i:04d}",
+                    "event_type": "ENTRY",
+                    "timestamp": now.isoformat(),
+                    "is_staff": False,
+                    "confidence": 0.9,
+                    "metadata": {},
+                }
+            ]
             await client.post("/events/ingest", json=events)
 
         response = await client.get("/stores/STORE_CDROP/anomalies")
@@ -128,13 +167,28 @@ class TestAnomalies:
         c = cdrops[0]
         assert c["severity"] in ("WARN", "CRITICAL")
         assert "conversion" in c["message"].lower()
-        assert "queue" in c["suggested_action"].lower() or "product" in c["suggested_action"].lower() or "floor" in c["suggested_action"].lower()
+        assert (
+            "queue" in c["suggested_action"].lower()
+            or "product" in c["suggested_action"].lower()
+            or "floor" in c["suggested_action"].lower()
+        )
 
     async def test_anomaly_persisted_in_db(self, client: AsyncClient):
         now = datetime.now(timezone.utc)
         old = now - timedelta(minutes=35)
         events = [
-            {"event_id": str(uuid4()), "store_id": "STORE_PERSIST", "camera_id": "CAM_FLOOR", "visitor_id": "VIS_PERSIST1", "event_type": "ZONE_ENTER", "timestamp": old.isoformat(), "zone_id": "MAKEUP", "is_staff": False, "confidence": 0.9, "metadata": {}},
+            {
+                "event_id": str(uuid4()),
+                "store_id": "STORE_PERSIST",
+                "camera_id": "CAM_FLOOR",
+                "visitor_id": "VIS_PERSIST1",
+                "event_type": "ZONE_ENTER",
+                "timestamp": old.isoformat(),
+                "zone_id": "MAKEUP",
+                "is_staff": False,
+                "confidence": 0.9,
+                "metadata": {},
+            },
         ]
         await client.post("/events/ingest", json=events)
         await client.get("/stores/STORE_PERSIST/anomalies")

@@ -23,5 +23,9 @@ async def db_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONRe
     logger.error("database_unavailable", trace_id=trace_id, error=str(exc))
     return JSONResponse(
         status_code=503,
-        content={"error": "Service Unavailable", "detail": "Database connection failed", "trace_id": trace_id},
+        content={
+            "error": "Service Unavailable",
+            "detail": "Database connection failed",
+            "trace_id": trace_id,
+        },
     )
