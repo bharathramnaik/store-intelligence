@@ -1,30 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
 
 from typing import Literal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func, and_, text
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import FunnelOut, FunnelStage
 from app.db.base import EventModel, SessionModel
 from app.db.session import get_db
+from app.core.date_utils import today_bounds
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
 
-def _today_bounds() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
-    return start, end
-
-
 @router.get("/{store_id}/funnel", response_model=FunnelOut)
 async def get_funnel(store_id: str, db: AsyncSession = Depends(get_db)) -> FunnelOut:
-    start, end = _today_bounds()
+    start, end = today_bounds()
 
     # Stage 1: Entry (ENTRY or REENTRY)
     s1 = select(func.count(func.distinct(EventModel.visitor_id))).where(

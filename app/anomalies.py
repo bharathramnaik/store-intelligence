@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import AnomalyOut
 from app.db.base import EventModel, SessionModel, AnomalyModel, DailyMetricModel
 from app.db.session import get_db
-from app.core.logging import logger
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -184,8 +183,20 @@ async def get_anomalies(store_id: str, db: AsyncSession = Depends(get_db)) -> li
             created_at=now,
         ))
 
-    # Persist anomalies
+    # Persist anomalies (deduplicated — skip if same type + severity exists within last hour)
+    one_hour_ago = now - timedelta(hours=1)
     for anom in anomalies:
+        dup_check = select(AnomalyModel).where(
+            and_(
+                AnomalyModel.store_id == anom.store_id,
+                AnomalyModel.anomaly_type == anom.anomaly_type,
+                AnomalyModel.severity == anom.severity,
+                AnomalyModel.created_at >= one_hour_ago,
+            )
+        ).limit(1)
+        existing = (await db.execute(dup_check)).scalar_one_or_none()
+        if existing is not None:
+            continue
         db.add(AnomalyModel(
             id=str(uuid4()),
             store_id=anom.store_id,

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Float, Boolean, DateTime, Integer, JSON, Text, func
 from sqlalchemy.pool import NullPool
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.core.config import settings
 

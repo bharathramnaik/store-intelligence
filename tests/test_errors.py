@@ -3,8 +3,7 @@
 
 from __future__ import annotations
 
-import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import AsyncClient
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import app

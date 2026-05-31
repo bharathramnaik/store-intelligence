@@ -6,10 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from httpx import AsyncClient
-from sqlalchemy.exc import SQLAlchemyError
 
-from app.main import app
-from app.db.session import get_db
 
 
 class TestHealth:

@@ -1,30 +1,23 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
-from typing import Any, Literal
+from datetime import datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import MetricOut
 from app.db.base import EventModel, SessionModel
 from app.db.session import get_db
-from app.core.logging import logger
+from app.core.date_utils import today_bounds
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
 
-def _today_bounds() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
-    return start, end
-
-
 @router.get("/{store_id}/metrics", response_model=MetricOut)
 async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> MetricOut:
-    start, end = _today_bounds()
+    start, end = today_bounds()
 
     # Unique visitors (non-staff, ENTRY or REENTRY today)
     uv_stmt = select(func.count(func.distinct(EventModel.visitor_id))).where(
@@ -79,11 +72,12 @@ async def get_metrics(store_id: str, db: AsyncSession = Depends(get_db)) -> Metr
     dwell_result = await db.execute(dwell_stmt)
     avg_dwell_per_zone = {row[0]: round(row[1] or 0.0, 2) for row in dwell_result.all() if row[0]}
 
-    # Latest queue depth from BILLING_QUEUE_JOIN metadata
+    # Latest queue depth from BILLING_QUEUE_JOIN metadata (non-staff only)
     q_stmt = select(EventModel.metadata_json).where(
         and_(
             EventModel.store_id == store_id,
             EventModel.event_type == "BILLING_QUEUE_JOIN",
+            EventModel.is_staff == False,
         )
     ).order_by(EventModel.timestamp.desc()).limit(1)
     q_result = await db.execute(q_stmt)

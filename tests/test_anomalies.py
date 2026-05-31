@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from httpx import AsyncClient
 
 from app.db.session import get_db_context
 from app.db.base import AnomalyModel
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 
 class TestAnomalies:

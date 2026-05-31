@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, and_
@@ -9,20 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import HeatmapOut, HeatmapZone
 from app.db.base import EventModel, SessionModel
 from app.db.session import get_db
+from app.core.date_utils import today_bounds
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
 
-def _today_bounds() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
-    return start, end
-
-
 @router.get("/{store_id}/heatmap", response_model=HeatmapOut)
 async def get_heatmap(store_id: str, db: AsyncSession = Depends(get_db)) -> HeatmapOut:
-    start, end = _today_bounds()
+    start, end = today_bounds()
 
     # Total sessions in window for confidence flag
     sess_stmt = select(func.count(func.distinct(SessionModel.visitor_id))).where(

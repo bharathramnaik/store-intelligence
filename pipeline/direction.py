@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import deque
 from typing import Literal
 
-import numpy as np
 
 
 class DirectionTracker:

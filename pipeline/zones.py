@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 from shapely.geometry import Point, Polygon
 
 
@@ -57,6 +56,23 @@ class ZoneMapper:
                 cy = cy * layout_height / frame_height
 
         point = Point(cx, cy)
+
+        # Only check zones visible from this camera
+        cam_zones = self.camera_zones.get(camera_id, [])
+        if cam_zones:
+            candidates = []
+            for zone_name in cam_zones:
+                poly = self.zones[store_id].get(zone_name)
+                if poly is not None and poly.contains(point):
+                    candidates.append(zone_name)
+            if len(candidates) == 1:
+                return candidates[0]
+            if len(candidates) > 1:
+                # Multiple camera zones match — pick smallest area
+                return min(candidates, key=lambda z: self.zones[store_id][z].area)
+            # No camera zone matched — fall through to zone-agnostic check
+
+        # Zone-agnostic fallback (for cameras not in any zone definition)
         candidates = []
         for zone_name, poly in self.zones[store_id].items():
             if poly.contains(point):
@@ -66,12 +82,4 @@ class ZoneMapper:
             return None
         if len(candidates) == 1:
             return candidates[0]
-
-        # Prefer zone covered by current camera
-        cam_zones = self.camera_zones.get(camera_id, [])
-        for c in candidates:
-            if c in cam_zones:
-                return c
-
-        # Fallback: smallest area zone
         return min(candidates, key=lambda z: self.zones[store_id][z].area)

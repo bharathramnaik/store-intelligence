@@ -4,8 +4,6 @@ import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Any
-import json
 
 import cv2
 import numpy as np
@@ -14,8 +12,9 @@ from ultralytics import YOLO
 from pipeline.direction import DirectionTracker
 from pipeline.zones import ZoneMapper
 from pipeline.tracker import SessionManager
-from pipeline.queue import QueueDetector
+from pipeline.queuedetector import QueueDetector
 from pipeline.emit import EventEmitter
+from pipeline.staff import StaffClassifier
 
 
 class DetectionPipeline:
@@ -42,6 +41,7 @@ class DetectionPipeline:
         self.session_manager = SessionManager()
         self.queue_detector = QueueDetector()
         self.direction_tracker: DirectionTracker | None = None
+        self.staff_classifier = StaffClassifier()
 
         # Determine camera role
         camera_meta = self.zone_mapper.get_camera(self.store_id, self.camera_id)
@@ -117,7 +117,7 @@ class DetectionPipeline:
             "metadata": metadata or {"queue_depth": None, "sku_zone": zone_id, "session_seq": seq},
         }
 
-    def process(self) -> None:
+    def process(self, max_frames: int | None = None) -> None:
         cap = cv2.VideoCapture(str(self.clip_path), cv2.CAP_FFMPEG)
         if not cap.isOpened():
             cap.release()
@@ -139,6 +139,8 @@ class DetectionPipeline:
         processed = 0
 
         while True:
+            if max_frames is not None and frame_idx >= max_frames:
+                break
             ret, frame = cap.read()
             if not ret:
                 break
@@ -169,9 +171,15 @@ class DetectionPipeline:
                     )
                     appearance = self._compute_appearance_hist(frame, (x1, y1, x2, y2))
 
-                    # Staff classification: only staff cameras auto-mark as staff
-                    is_staff = self.camera_role == "staff"
-                    staff_conf = 0.95 if is_staff else 1.0
+                    # Staff classification: heuristic for all cameras
+                    if self.camera_role == "staff":
+                        is_staff = True
+                        staff_conf = 0.95
+                    else:
+                        staff_result, staff_conf = self.staff_classifier.classify(
+                            frame, (x1, y1, x2, y2), []
+                        )
+                        is_staff = staff_result
                     final_conf = round(conf, 2)
 
                     detections.append({

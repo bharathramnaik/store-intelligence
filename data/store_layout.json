@@ -7,7 +7,7 @@
       "CAM 1.mp4": "CAM_FLOOR_01",
       "CAM 2.mp4": "CAM_FLOOR_02",
       "CAM 3.mp4": "CAM_ENTRY_01",
-      "CAM 4.mp4": "CAM_STAFF_01",
+      "CAM 4.mp4": "CAM_BILLING_01",
       "CAM 5.mp4": "CAM_STAFF_02"
     },
     "zones": [
@@ -29,7 +29,12 @@
       {
         "name": "STAFF_ONLY",
         "polygon": [[0, 0], [1920, 0], [1920, 1080], [0, 1080]],
-        "cameras": ["CAM_STAFF_01", "CAM_STAFF_02"]
+        "cameras": ["CAM_STAFF_02"]
+      },
+      {
+        "name": "BILLING",
+        "polygon": [[0, 300], [1920, 300], [1920, 1080], [0, 1080]],
+        "cameras": ["CAM_BILLING_01"]
       }
     ],
     "cameras": [
@@ -52,8 +57,8 @@
         "source_files": ["CAM 3.mp4"]
       },
       {
-        "id": "CAM_STAFF_01",
-        "type": "staff",
+        "id": "CAM_BILLING_01",
+        "type": "billing",
         "resolution": [1920, 1080],
         "source_files": ["CAM 4.mp4"]
       },

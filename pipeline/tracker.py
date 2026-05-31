@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import Any
+from datetime import datetime, timedelta
 import numpy as np
 import cv2
 

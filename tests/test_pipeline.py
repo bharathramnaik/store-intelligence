@@ -3,15 +3,13 @@
 
 from __future__ import annotations
 
-import pytest
 import numpy as np
 from datetime import datetime, timezone, timedelta
 
 from pipeline.direction import DirectionTracker
 from pipeline.staff import StaffClassifier
 from pipeline.tracker import SessionManager
-from pipeline.zones import ZoneMapper
-from pipeline.queue import QueueDetector
+from pipeline.queuedetector import QueueDetector
 
 
 class TestDirectionTracker:

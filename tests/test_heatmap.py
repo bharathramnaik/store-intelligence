@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from httpx import AsyncClient
