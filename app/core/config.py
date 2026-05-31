@@ -16,6 +16,15 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.startswith("postgresql://"):
             return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v
+
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
     redis_url: str = "redis://localhost:6379/0"
     clips_dir: str = "/data/clips"
     output_dir: str = "/data/events"
