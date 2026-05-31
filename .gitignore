@@ -19,6 +19,7 @@ data/events/
 data/events_real/
 data/challenge_text.txt
 data/check_tables.py
+data/*.py
 models/*.pt
 !models/.gitkeep
 *.log
