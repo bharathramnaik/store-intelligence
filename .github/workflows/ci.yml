@@ -43,7 +43,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ".[dev]"
+          pip install ".[dev,pipeline]"
 
       - name: Check lint (ruff)
         run: ruff check app/ tests/ scripts/
